@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TikSave — Descargador sin marca de agua</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --accent: #fe2c55;
+    --accent2: #25f4ee;
+    --text: #f0f0f5;
+    --muted: #888899;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Fondo animado */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 15% 20%, rgba(254,44,85,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 35% at 85% 75%, rgba(37,244,238,0.09) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  /* Header */
+  header {
+    padding: 48px 0 0;
+    text-align: center;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 36px;
+  }
+
+  .logo-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-icon svg { width: 22px; height: 22px; fill: #fff; }
+
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #fff 60%, var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(32px, 6vw, 52px);
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    margin-bottom: 16px;
+  }
+
+  h1 span {
+    background: linear-gradient(90deg, var(--accent), #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.6;
+    margin-bottom: 48px;
+  }
+
+  /* Input card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(254,44,85,0.4), rgba(37,244,238,0.4), transparent);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .url-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    min-width: 0;
+  }
+
+  .url-input::placeholder { color: var(--muted); }
+  .url-input:focus { border-color: rgba(254,44,85,0.5); }
+
+  .btn-download {
+    background: linear-gradient(135deg, var(--accent), #c4163c);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 14px 24px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+    letter-spacing: 0.2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-download:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(254,44,85,0.35); }
+  .btn-download:active { transform: translateY(0); }
+  .btn-download:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .btn-paste {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .btn-paste:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+  .btn-paste svg { width: 14px; height: 14px; }
+
+  /* Features pills */
+  .features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+
+  .pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 7px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); flex-shrink: 0; }
+
+  /* Estado: cargando */
+  .status {
+    display: none;
+    text-align: center;
+    padding: 32px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .status.show { display: block; }
+
+  .spinner {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 16px;
+    border: 3px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .status-text {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* Resultado */
+  .result {
+    display: none;
+    animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1);
+  }
+
+  .result.show { display: block; }
+
+  .video-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .video-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(37,244,238,0.5), transparent);
+  }
+
+  .video-preview {
+    display: flex;
+    gap: 20px;
+    padding: 24px;
+    align-items: flex-start;
+  }
+
+  .thumb-wrap {
+    position: relative;
+    flex-shrink: 0;
+    width: 100px;
+    height: 140px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface2);
+  }
+
+  .thumb-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .thumb-badge {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-size: 11px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+
+  .video-meta { flex: 1; min-width: 0; }
+
+  .video-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .video-author {
+    color: var(--accent2);
+    font-size: 13px;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  .meta-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .tag.green { border-color: rgba(37,244,238,0.25); color: var(--accent2); background: rgba(37,244,238,0.07); }
+
+  /* Botones de descarga */
+  .dl-buttons {
+    padding: 0 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .dl-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    padding: 16px 20px;
+    text-decoration: none;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .dl-btn:hover {
+    border-color: var(--accent);
+    background: rgba(254,44,85,0.07);
+    transform: translateX(2px);
+  }
+
+  .dl-btn.teal:hover {
+    border-color: var(--accent2);
+    background: rgba(37,244,238,0.07);
+  }
+
+  .dl-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .dl-icon.red { background: rgba(254,44,85,0.15); }
+  .dl-icon.cyan { background: rgba(37,244,238,0.12); }
+  .dl-icon.purple { background: rgba(140,100,255,0.12); }
+
+  .dl-info { flex: 1; }
+  .dl-label { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+  .dl-desc { color: var(--muted); font-size: 12px; }
+
+  .dl-arrow {
+    color: var(--muted);
+    transition: transform 0.2s, color 0.2s;
+  }
+  .dl-btn:hover .dl-arrow { transform: translateX(3px); color: var(--text); }
+
+  /* Error */
+  .error-card {
+    display: none;
+    background: rgba(254,44,85,0.08);
+    border: 1px solid rgba(254,44,85,0.25);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    color: #ff7a90;
+    font-size: 14px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .error-card.show { display: flex; align-items: flex-start; gap: 12px; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 48px 0 32px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+
+  /* Animaciones */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    .input-row { flex-direction: column; }
+    .video-preview { flex-direction: column; }
+    .thumb-wrap { width: 100%; height: 180px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z"/>
+        </svg>
+      </div>
+      <span class="logo-text">TikSave</span>
+    </div>
+
+    <h1>Descarga TikToks<br><span>sin marca de agua</span></h1>
+    <p class="subtitle">Pega el enlace de cualquier video de TikTok y descárgalo<br>en HD con audio, sin marcas de agua, gratis.</p>
+  </header>
+
+  <!-- Input principal -->
+  <div class="card">
+    <div class="input-row">
+      <input
+        type="text"
+        id="urlInput"
+        class="url-input"
+        placeholder="https://www.tiktok.com/@usuario/video/..."
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+      <button class="btn-download" id="btnDownload" onclick="fetchVideo()">
+        Descargar
+      </button>
+    </div>
+    <button class="btn-paste" onclick="pasteUrl()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      Pegar desde portapapeles
+    </button>
+  </div>
+
+  <!-- Features -->
+  <div class="features">
+    <div class="pill"><span class="pill-dot"></span>Sin marca de agua</div>
+    <div class="pill"><span class="pill-dot"></span>Audio incluido</div>
+    <div class="pill"><span class="pill-dot"></span>Calidad 4K / HD</div>
+    <div class="pill"><span class="pill-dot"></span>100% gratis</div>
+    <div class="pill"><span class="pill-dot"></span>Sin registro</div>
+  </div>
+
+  <!-- Cargando -->
+  <div class="status" id="statusEl">
+    <div class="spinner"></div>
+    <p class="status-text" id="statusText">Obteniendo información del video...</p>
+  </div>
+
+  <!-- Error -->
+  <div class="error-card" id="errorCard">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span id="errorText"></span>
+  </div>
+
+  <!-- Resultado -->
+  <div class="result" id="resultEl">
+    <div class="video-card">
+      <div class="video-preview">
+        <div class="thumb-wrap">
+          <img id="thumbImg" src="" alt="Miniatura del video" />
+          <span class="thumb-badge" id="durationBadge"></span>
+        </div>
+        <div class="video-meta">
+          <div class="video-title" id="videoTitle">—</div>
+          <div class="video-author" id="videoAuthor">—</div>
+          <div class="meta-tags" id="metaTags"></div>
+        </div>
+      </div>
+
+      <div class="dl-buttons">
+        <!-- Sin marca de agua con audio -->
+        <a id="btnNoWatermark" class="dl-btn" href="#" target="_blank" rel="noopener">
+          <div class="dl-icon red">
+            <svg width="20" height="20" fill="none" stroke="#fe2c55" stroke-width="2.2" viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+          </div>
+          <div class="dl-info">
+            <div class="dl-label">Video sin marca de agua</div>
+            <div class="dl-desc">Con audio · Calidad HD · Recomendado</div>
+          </div>
+          <svg class="dl-arrow" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </a>
+
+        <!-- Solo audio MP3 -->
+        <a id="btnAudio" class="dl-btn teal" href="#" target="_blank" rel="noopener">
+          <div class="dl-icon cyan">
+            <svg width="20" height="20" fill="none" stroke="#25f4ee" stroke-width="2.2" viewBox="0 0 24 24">
+              <path d="M9 18V5l12-2v13M9 18a3 3 0 01-6 0 3 3 0 016 0zm12-2a3 3 0 01-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+          <div class="dl-info">
+            <div class="dl-label">Solo audio</div>
+            <div class="dl-desc">Extrae el audio del video en MP3</div>
+          </div>
+          <svg class="dl-arrow" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>TikSave usa la API pública de TikWM para recuperar videos.<br>
+    Úsalo solo con videos públicos y respeta los derechos de autor.<br>
+    No almacenamos ningún video ni dato personal.</p>
+  </footer>
+</div>
+
+<script>
+  const PROXY = 'https://www.tikwm.com/api/';
+
+  function showStatus(text) {
+    document.getElementById('statusEl').classList.add('show');
+    document.getElementById('statusText').textContent = text;
+    document.getElementById('resultEl').classList.remove('show');
+    document.getElementById('errorCard').classList.remove('show');
+  }
+
+  function hideStatus() {
+    document.getElementById('statusEl').classList.remove('show');
+  }
+
+  function showError(msg) {
+    hideStatus();
+    const el = document.getElementById('errorCard');
+    document.getElementById('errorText').textContent = msg;
+    el.classList.add('show');
+  }
+
+  function showResult(data) {
+    hideStatus();
+    const r = document.getElementById('resultEl');
+
+    // Miniatura
+    const thumb = document.getElementById('thumbImg');
+    thumb.src = `https://www.tikwm.com${data.cover || data.origin_cover || ''}`;
+    thumb.onerror = () => { thumb.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="140" fill="%231c1c27"><rect width="100" height="140"/></svg>'; };
+
+    // Duración
+    if (data.duration) {
+      const mins = Math.floor(data.duration / 60);
+      const secs = data.duration % 60;
+      document.getElementById('durationBadge').textContent = mins > 0
+        ? `${mins}:${String(secs).padStart(2,'0')}`
+        : `0:${String(secs).padStart(2,'0')}`;
+    }
+
+    // Título y autor
+    document.getElementById('videoTitle').textContent = data.title || 'Video de TikTok';
+    document.getElementById('videoAuthor').textContent = data.author
+      ? `@${data.author.unique_id || data.author}`
+      : '';
+
+    // Tags de info
+    const tagsEl = document.getElementById('metaTags');
+    tagsEl.innerHTML = '';
+    if (data.play_count) tagsEl.innerHTML += `<span class="tag">${formatNum(data.play_count)} vistas</span>`;
+    if (data.digg_count) tagsEl.innerHTML += `<span class="tag">♥ ${formatNum(data.digg_count)}</span>`;
+
+    // Mostrar resolución real del video HD
+    const hdW = data.hd_width || data.width;
+    const hdH = data.hd_height || data.height;
+    if (hdW && hdH) tagsEl.innerHTML += `<span class="tag green">${hdW}×${hdH}</span>`;
+
+    const hdSize = data.hd_size || data.size;
+    if (hdSize) tagsEl.innerHTML += `<span class="tag">${(hdSize / 1048576).toFixed(1)} MB</span>`;
+
+    // URLs de descarga — prioridad: hdplay (4K/HD) → play → wmplay
+    const videoUrl = data.hdplay || data.play || data.wmplay;
+    const isHD = !!(data.hdplay);
+    if (videoUrl) {
+      const fullUrl = videoUrl.startsWith('http') ? videoUrl : `https://www.tikwm.com${videoUrl}`;
+      const btn4k = document.getElementById('btnNoWatermark');
+      btn4k.href = fullUrl;
+      // Actualizar etiqueta según disponibilidad real
+      btn4k.querySelector('.dl-label').textContent = isHD ? 'Video 4K sin marca de agua' : 'Video HD sin marca de agua';
+      btn4k.querySelector('.dl-desc').textContent = isHD
+        ? 'Con audio · Máxima calidad 4K · Sin watermark'
+        : 'Con audio · Mejor calidad disponible · Sin watermark';
+      btn4k.onclick = (e) => {
+        e.preventDefault();
+        triggerDownload(fullUrl, 'tiktok_4k.mp4');
+      };
+    }
+
+    // Solo audio
+    const audioUrl = data.music || data.music_info?.play;
+    if (audioUrl) {
+      const fullAudioUrl = audioUrl.startsWith('http') ? audioUrl : `https://www.tikwm.com${audioUrl}`;
+      document.getElementById('btnAudio').href = fullAudioUrl;
+      document.getElementById('btnAudio').onclick = (e) => {
+        e.preventDefault();
+        triggerDownload(fullAudioUrl, 'tiktok_audio.mp3');
+      };
+    } else {
+      document.getElementById('btnAudio').style.display = 'none';
+    }
+
+    r.classList.add('show');
+  }
+
+  function triggerDownload(url, filename) {
+    fetch(url)
+      .then(res => res.blob())
+      .then(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(a.href);
+          document.body.removeChild(a);
+        }, 1000);
+      })
+      .catch(() => {
+        // Fallback: abrir en nueva pestaña
+        window.open(url, '_blank');
+      });
+  }
+
+  function formatNum(n) {
+    if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+    return String(n);
+  }
+
+  async function fetchVideo() {
+    const input = document.getElementById('urlInput');
+    const btn = document.getElementById('btnDownload');
+    const url = input.value.trim();
+
+    // Validar URL
+    if (!url) { showError('Por favor, pega el enlace del video de TikTok.'); return; }
+    if (!url.includes('tiktok.com') && !url.includes('vm.tiktok.com') && !url.includes('vt.tiktok.com')) {
+      showError('El enlace no parece ser de TikTok. Asegúrate de copiar el link completo del video.');
+      return;
+    }
+
+    btn.disabled = true;
+    document.getElementById('resultEl').classList.remove('show');
+    document.getElementById('errorCard').classList.remove('show');
+    showStatus('Obteniendo información del video...');
+
+    try {
+      const apiUrl = `${PROXY}?url=${encodeURIComponent(url)}&hd=1&is_tok=1`;
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
+
+      const json = await response.json();
+
+      if (json.code !== 0 && json.code !== 200) {
+        throw new Error(json.msg || 'No se pudo obtener el video. Verifica que el link sea correcto y que el video sea público.');
+      }
+
+      const data = json.data;
+      if (!data) throw new Error('No se encontraron datos del video.');
+
+      showResult(data);
+    } catch (err) {
+      let msg = err.message || 'Error desconocido. Intenta de nuevo.';
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        msg = 'Error de red. Verifica tu conexión a internet e intenta de nuevo.';
+      }
+      showError(msg);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function pasteUrl() {
+    try {
+      const text = await navigator.clipboard.readText();
+      document.getElementById('urlInput').value = text;
+      if (text.includes('tiktok.com')) fetchVideo();
+    } catch {
+      document.getElementById('urlInput').focus();
+    }
+  }
+
+  // Enter para descargar
+  document.getElementById('urlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fetchVideo();
+  });
+</script>
+</body>
+</html>
